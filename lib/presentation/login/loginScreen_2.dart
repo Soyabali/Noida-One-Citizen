@@ -445,14 +445,6 @@ class _LoginPageState extends State<LoginPage> {
                                             print('---361----$result');
                                             print('---362----$msg');
                                             /// to store the value in a local data base
-                                            //--------------
-                                            //  SharedPreferences prefs = await SharedPreferences.getInstance();
-                                            //  prefs.setString('sGender',sGender);
-                                            //  prefs.setString('sContactNo',sContactNo);
-                                            //  prefs.setString('sCitizenName',sCitizenName);
-                                            //  prefs.setString('sEmailId',sEmailId);
-                                            //  prefs.setString('sToken',sToken);
-                                             //----------
 
                                           }else{
                                             if(_phoneNumberController.text.isEmpty){

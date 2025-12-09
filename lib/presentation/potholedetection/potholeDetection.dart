@@ -9,6 +9,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../app/generalFunction.dart';
 import '../../app/loader_helper.dart';
@@ -97,6 +98,7 @@ class _MyHomePageState extends State<patholeDectionForm> with WidgetsBindingObse
   var iCategoryCodeList;
   var locationAddress;
   List<Map<String, dynamic>> firstFormCombinedList = [];
+  var potholeResponseBody;
 
   // online location
   // pick image from a Camera
@@ -234,7 +236,10 @@ class _MyHomePageState extends State<patholeDectionForm> with WidgetsBindingObse
         // Check for specific keys in the response
         uplodedImage = responseData['Data'][0]['sImagePath'];
         //uere to uplode pothole detections api to calll a response
-        uploadImagePothole(uplodedImage);
+        if(uplodedImage!=null){
+          detectFromApiUrl(uplodedImage);
+        }
+
         print('Uploaded Image--------201---->>.--: $uplodedImage');
       } else {
         print('Unexpected response format: $responseData');
@@ -246,44 +251,43 @@ class _MyHomePageState extends State<patholeDectionForm> with WidgetsBindingObse
     }
   }
   // uplodeimagePothole
-  Future<void> uploadImagePothole(String uplodedImage) async {
-
-    // http://125.21.67.106:5000/detect
-    var baseURL = BaseRepo().baseurl;
-    var endPoint = "PostCitizenImage/PostCitizenImage";
-    var uploadImagePotholeApi = "http://125.21.67.106:5000/detect";
+  Future<void> detectFromApiUrl(String apiUrl) async {
     try {
-      showLoader();
-      // Create a multipart request
-      var request = http.MultipartRequest(
-        'POST', Uri.parse('$uploadImagePotholeApi'),
-      );
-      // Add headers
-      //request.headers['token'] = '04605D46-74B1-4766-9976-921EE7E700A6';
-     // request.headers['token'] = token;
-      //  request.headers['sFolder'] = 'CompImage';
-      // Add the image file as a part of the request
-      request.files.add(await http.MultipartFile.fromPath('image',uplodedImage,
-      ));
-      // Send the request
-      var streamedResponse = await request.send();
-      // Get the response
-      var response = await http.Response.fromStream(streamedResponse);
-      // Parse the response JSON
-      var responseData = json.decode(response.body); // No explicit type casting
-      print("---------248-----$responseData");
-      if (responseData is Map<String, dynamic>) {
-        // Check for specific keys in the response
-        /// todo here you pick a endpooint
-      var uplodedImagePothole = responseData['Data'][0]['sImagePath'];
-        print('Uploaded Image--------201---->>.--: $uplodedImagePothole');
+      print("---257---$apiUrl");
+
+      // Step 1: Download image from apiUrl
+      var imageResponse = await http.get(Uri.parse(apiUrl));
+
+      if (imageResponse.statusCode == 200) {
+        // Save to temporary file
+        final tempDir = await getTemporaryDirectory();
+        final file = File('${tempDir.path}/temp_image.jpg');
+        await file.writeAsBytes(imageResponse.bodyBytes);
+
+        // Step 2: Create Multipart request with file
+        var request = http.MultipartRequest(
+          'POST',
+          Uri.parse('http://125.21.67.106:5000/detect'),
+        );
+
+        request.files.add(await http.MultipartFile.fromPath('image', file.path));
+
+        // Step 3: Send request
+        var response = await request.send();
+
+        if (response.statusCode == 200) {
+
+          potholeResponseBody = await response.stream.bytesToString();
+          print("✅ Detection Response: $potholeResponseBody");
+        } else {
+          print("❌ Error: ${response.reasonPhrase}");
+          print("${response.statusCode}");
+        }
       } else {
-        print('Unexpected response format: $responseData');
+        print("❌ Failed to download image from apiUrl");
       }
-      hideLoader();
-    } catch (error) {
-      hideLoader();
-      print('Error uploading image: $error');
+    } catch (e) {
+      print("⚠️ Exception: $e");
     }
   }
 
@@ -565,10 +569,7 @@ class _MyHomePageState extends State<patholeDectionForm> with WidgetsBindingObse
                                           children: [
                                             Text("Click Photo",
                                                 style: AppTextStyle.font14OpenSansRegularBlack45TextStyle),
-                                            SizedBox(height: 5),
-
-
-
+                                            SizedBox(height: 10),
 
                                             // Expanded(
                                             //   child: Row(
@@ -594,8 +595,8 @@ class _MyHomePageState extends State<patholeDectionForm> with WidgetsBindingObse
                                           ],
                                         ),
                                         Row(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          crossAxisAlignment: CrossAxisAlignment.center,
+                                          mainAxisAlignment: MainAxisAlignment.start,
+                                          crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
                                             // First Container: Camera
                                             GestureDetector(
@@ -604,25 +605,24 @@ class _MyHomePageState extends State<patholeDectionForm> with WidgetsBindingObse
                                                pickImage();
                                                },
                                               child: Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                                padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 8),
                                                 decoration: BoxDecoration(
                                                   color: Colors.grey[200],
                                                   borderRadius: BorderRadius.circular(8),
                                                 ),
                                                 child: const Row(
                                                   children: [
-                                                    Icon(Icons.camera_alt, color: Colors.blue),
+                                                    Icon(Icons.camera_alt, color: Colors.blue,size: 16),
                                                     SizedBox(width: 5),
                                                     Text(
                                                       "Photo",
-                                                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                                                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
                                                     ),
                                                   ],
                                                 ),
                                               ),
                                             ),
-                                            SizedBox(width: 5),
-
+                                            SizedBox(width: 4),
                                             // Second Container: Gallery
                                             GestureDetector(
                                               onTap: (){
@@ -630,18 +630,18 @@ class _MyHomePageState extends State<patholeDectionForm> with WidgetsBindingObse
                                                 pickGallery();
                                               },
                                               child: Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                                padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 8),
                                                 decoration: BoxDecoration(
                                                   color: Colors.grey[200],
                                                   borderRadius: BorderRadius.circular(8),
                                                 ),
                                                 child: const Row(
                                                   children: [
-                                                    Icon(Icons.photo, color: Colors.green),
+                                                    Icon(Icons.photo, color: Colors.green,size: 16,),
                                                     SizedBox(width: 5),
                                                     Text(
                                                       "Gallery",
-                                                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                                                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
                                                     ),
                                                   ],
                                                 ),
@@ -753,7 +753,8 @@ class _MyHomePageState extends State<patholeDectionForm> with WidgetsBindingObse
                                           uplodedImage,
                                           lat,
                                           long,
-                                          locationAddress
+                                          locationAddress,
+                                          potholeResponseBody
 
                                       );
 

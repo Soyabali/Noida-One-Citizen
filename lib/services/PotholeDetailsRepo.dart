@@ -14,7 +14,7 @@ class PothoLedetailsRepo {
   GeneralFunction generalFunction = GeneralFunction();
 
   Future photoledetail(
-      BuildContext context, selectedWardId2, String? sContactNo, String random12digitNumber, uplodedImage, double? lat, double? long, locationAddress) async {
+      BuildContext context, selectedWardId2, String? sContactNo, String random12digitNumber, uplodedImage, double? lat, double? long, locationAddress, potholeResponseBody) async {
     //
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? sToken = prefs.getString('sToken');
@@ -35,6 +35,7 @@ class PothoLedetailsRepo {
       print("---35----lat:  $long");
       print("---36----address:  $locationAddress");
       print("---37----sToken:  $sToken");
+      print("----38----photoleImageBody--$potholeResponseBody");
 
       showLoader();
       // var headers = {'Content-Type': 'application/json'};
@@ -51,7 +52,7 @@ class PothoLedetailsRepo {
         "Latitude":lat,
         "Longitude":long,
         "PotholLocation":locationAddress,
-        "Json":""
+        "Json":'$potholeResponseBody'
       });
       request.headers.addAll(headers);
       http.StreamedResponse response = await request.send();
